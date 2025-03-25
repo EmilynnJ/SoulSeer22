@@ -1,0 +1,285 @@
+// frontend/src/components/client/ClientDashboard.jsx
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import api from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
+import { formatCurrency, formatDate } from '../../utils/formatters';
+import './ClientDashboard.css';
+
+const ClientDashboard = () => {
+  const { user } = useAuth();
+  const [balance, setBalance] = useState(0);
+  const [recentSessions, setRecentSessions] = useState([]);
+  const [favoriteReaders, setFavoriteReaders] = useState([]);
+  const [recommendedReaders, setRecommendedReaders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch client balance
+        const balanceResponse = await api.get('/api/client/balance');
+        setBalance(balanceResponse.data.balance);
+        
+        // Fetch recent sessions
+        const sessionsResponse = await api.get('/api/sessions?limit=3&role=client');
+        setRecentSessions(sessionsResponse.data.data);
+        
+        // Fetch favorite readers
+        const favoritesResponse = await api.get('/api/client/favorite-readers');
+        setFavoriteReaders(favoritesResponse.data.data);
+        
+        // Fetch recommended readers
+        const recommendedResponse = await api.get('/api/readers/recommended');
+        setRecommendedReaders(recommendedResponse.data.data);
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data. Please try again.');
+        setLoading(false);
+      }
+    };
+    
+    fetchDashboardData();
+  }, []);
+  
+  // Determine balance status
+  const getBalanceStatus = () => {
+    if (balance <= 0) return 'empty';
+    if (balance < 10) return 'low';
+    return 'good';
+  };
+  
+  const balanceStatus = getBalanceStatus();
+  
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading dashboard...</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="client-dashboard-container">
+      <h1 className="dashboard-title">Welcome, {user?.username}!</h1>
+      
+      {error && (
+        <div className="error-alert">
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="retry-button"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      
+      <div className="dashboard-grid">
+        {/* Balance Widget */}
+        <div className={`dashboard-card balance-widget ${balanceStatus}`}>
+          <h2>Your Balance</h2>
+          
+          <div className="balance-amount">
+            {formatCurrency(balance)}
+          </div>
+          
+          {balanceStatus === 'empty' && (
+            <div className="balance-message">
+              Your balance is empty. Add minutes to start a reading.
+            </div>
+          )}
+          
+          {balanceStatus === 'low' && (
+            <div className="balance-message">
+              Your balance is running low. Consider adding more minutes.
+            </div>
+          )}
+          
+          <Link to="/purchase" className="btn btn-primary">
+            Add Minutes
+          </Link>
+        </div>
+        
+        {/* Recent Sessions */}
+        <div className="dashboard-card recent-sessions-card">
+          <h2>Recent Sessions</h2>
+          
+          {recentSessions.length > 0 ? (
+            <div className="sessions-list">
+              {recentSessions.map(session => (
+                <div key={session._id} className="session-item">
+                  <div className="session-reader">
+                    <img 
+                      src={session.reader.avatar || '/assets/default-avatar.jpg'}
+                      alt={session.reader.username}
+                      className="reader-avatar"
+                    />
+                    <span>{session.reader.username}</span>
+                  </div>
+                  <div className="session-details">
+                    <div className="session-type">
+                      <span className={`session-type-icon ${session.type}`}>
+                        {session.type === 'chat' ? '💬' : 
+                         session.type === 'video' ? '📹' : '🎤'}
+                      </span>
+                      <span className="session-type-label">{session.type}</span>
+                    </div>
+                    <div className="session-date">
+                      {formatDate(session.createdAt)}
+                    </div>
+                  </div>
+                  <div className="session-status">
+                    <span className={`status-badge ${session.status}`}>
+                      {session.status}
+                    </span>
+                  </div>
+                  <Link to={`/sessions/${session._id}`} className="view-details-link">
+                    Details
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="no-sessions-message">
+              <p>You haven't had any sessions yet</p>
+              <p>Start exploring our readers to begin your journey</p>
+            </div>
+          )}
+          
+          <Link to="/client/sessions" className="view-all-link">
+            View All Sessions
+          </Link>
+        </div>
+        
+        {/* Favorite Readers */}
+        <div className="dashboard-card favorite-readers-card">
+          <h2>Your Favorite Readers</h2>
+          
+          {favoriteReaders.length > 0 ? (
+            <div className="readers-grid">
+              {favoriteReaders.map(reader => (
+                <div key={reader._id} className="reader-card">
+                  <img 
+                    src={reader.avatar || '/assets/default-avatar.jpg'} 
+                    alt={reader.username} 
+                    className="reader-avatar"
+                  />
+                  <div className="reader-info">
+                    <h3>{reader.username}</h3>
+                    <div className="reader-specialties">
+                      {reader.specialties.slice(0, 2).join(', ')}
+                    </div>
+                    <div className="reader-rating">
+                      <span className="star">★</span> {reader.averageRating.toFixed(1)}/5
+                    </div>
+                  </div>
+                  <div className="reader-status">
+                    <span className={`status-indicator ${reader.isOnline ? 'online' : 'offline'}`}>
+                      {reader.isOnline ? 'Online' : 'Offline'}
+                    </span>
+                  </div>
+                  <Link to={`/readers/${reader._id}`} className="btn btn-primary btn-sm">
+                    Start Reading
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="no-favorites-message">
+              <p>You haven't added any favorite readers yet</p>
+              <p>Add readers to your favorites for quick access</p>
+            </div>
+          )}
+          
+          <Link to="/readers" className="view-all-link">
+            Browse All Readers
+          </Link>
+        </div>
+        
+        {/* Recommended Readers */}
+        <div className="dashboard-card recommended-readers-card">
+          <h2>Recommended For You</h2>
+          
+          <div className="readers-grid">
+            {recommendedReaders.map(reader => (
+              <div key={reader._id} className="reader-card">
+                <img 
+                  src={reader.avatar || '/assets/default-avatar.jpg'} 
+                  alt={reader.username} 
+                  className="reader-avatar"
+                />
+                <div className="reader-info">
+                  <h3>{reader.username}</h3>
+                  <div className="reader-specialties">
+                    {reader.specialties.slice(0, 2).join(', ')}
+                  </div>
+                  <div className="reader-rating">
+                    <span className="star">★</span> {reader.averageRating.toFixed(1)}/5
+                  </div>
+                </div>
+                <div className="reader-status">
+                  <span className={`status-indicator ${reader.isOnline ? 'online' : 'offline'}`}>
+                    {reader.isOnline ? 'Online' : 'Offline'}
+                  </span>
+                </div>
+                <Link to={`/readers/${reader._id}`} className="btn btn-primary btn-sm">
+                  Start Reading
+                </Link>
+              </div>
+            ))}
+          </div>
+          
+          <Link to="/readers" className="view-all-link">
+            Browse All Readers
+          </Link>
+        </div>
+        
+        {/* Quick Links */}
+        <div className="dashboard-card quick-links-card">
+          <h2>Quick Links</h2>
+          
+          <div className="quick-links-grid">
+            <Link to="/live" className="quick-link">
+              <span className="quick-link-icon">📡</span>
+              <span className="quick-link-label">Live Streams</span>
+            </Link>
+            
+            <Link to="/shop" className="quick-link">
+              <span className="quick-link-icon">🛍️</span>
+              <span className="quick-link-label">Shop</span>
+            </Link>
+            
+            <Link to="/community" className="quick-link">
+              <span className="quick-link-icon">👥</span>
+              <span className="quick-link-label">Community</span>
+            </Link>
+            
+            <Link to="/client/profile" className="quick-link">
+              <span className="quick-link-icon">⚙️</span>
+              <span className="quick-link-label">Profile Settings</span>
+            </Link>
+            
+            <Link to="/help" className="quick-link">
+              <span className="quick-link-icon">❓</span>
+              <span className="quick-link-label">Help Center</span>
+            </Link>
+            
+            <Link to="/messages" className="quick-link">
+              <span className="quick-link-icon">✉️</span>
+              <span className="quick-link-label">Messages</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ClientDashboard;

@@ -1,0 +1,344 @@
+// client/src/components/Shop/ProductCard.jsx
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
+  Typography,
+  Button,
+  Box,
+  Chip,
+  Avatar,
+  Tooltip,
+  IconButton
+} from '@mui/material';
+import {
+  ShoppingCart as ShoppingCartIcon,
+  ShoppingCartCheckout as ShoppingCartCheckoutIcon,
+  Star as StarIcon,
+  StarBorder as StarBorderIcon,
+  CloudDownload as CloudDownloadIcon,
+  LocalShipping as LocalShippingIcon,
+  EventAvailable as EventAvailableIcon
+} from '@mui/icons-material';
+import { formatCurrency } from '../../utils/formatters';
+
+const ProductCard = ({ product, onAddToCart, isInCart, featured = false }) => {
+  const navigate = useNavigate();
+  
+  // Get primary image URL or placeholder
+  const imageUrl = product.images && product.images.length > 0
+    ? product.images.find(img => img.isPrimary)?.url || product.images[0].url
+    : '/images/product-placeholder.jpg';
+  
+  // Get product type icon
+  const getTypeIcon = () => {
+    switch (product.type) {
+      case 'digital':
+        return <CloudDownloadIcon fontSize="small" />;
+      case 'physical':
+        return <LocalShippingIcon fontSize="small" />;
+      case 'service':
+        return <EventAvailableIcon fontSize="small" />;
+      default:
+        return null;
+    }
+  };
+  
+  // Get product type label
+  const getTypeLabel = () => {
+    switch (product.type) {
+      case 'digital':
+        return 'Digital';
+      case 'physical':
+        return 'Physical';
+      case 'service':
+        return 'Service';
+      default:
+        return '';
+    }
+  };
+  
+  // Format product price
+  const formattedPrice = formatCurrency(product.price);
+  const formattedDiscountPrice = product.discountPrice 
+    ? formatCurrency(product.discountPrice) 
+    : null;
+  
+  // Handle card click
+  const handleCardClick = () => {
+    navigate(`/shop/product/${product._id}`);
+  };
+  
+  // Handle add to cart
+  const handleAddToCart = (e) => {
+    e.stopPropagation();
+    onAddToCart(product);
+  };
+  
+  // Handle view cart
+  const handleViewCart = (e) => {
+    e.stopPropagation();
+    navigate('/cart');
+  };
+  
+  return (
+    <Card 
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        transition: 'transform 0.3s ease',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        '&:hover': {
+          transform: 'translateY(-8px)',
+          boxShadow: '0 10px 20px rgba(0, 0, 0, 0.3)',
+          '& .card-overlay': {
+            opacity: 1
+          },
+          '& .card-actions': {
+            transform: 'translateY(0)'
+          }
+        }
+      }}
+      onClick={handleCardClick}
+    >
+      {/* Featured badge */}
+      {product.isFeatured && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 1
+          }}
+        >
+          <Tooltip title="Featured Product">
+            <Chip
+              icon={<StarIcon fontSize="small" sx={{ color: '#FFD700 !important' }} />}
+              label="Featured"
+              size="small"
+              sx={{
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                color: '#FFD700',
+                fontWeight: 'bold',
+                borderColor: '#FFD700'
+              }}
+              variant="outlined"
+            />
+          </Tooltip>
+        </Box>
+      )}
+      
+      {/* Product type badge */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 12,
+          left: 12,
+          zIndex: 1
+        }}
+      >
+        <Tooltip title={`${getTypeLabel()} Product`}>
+          <Chip
+            icon={getTypeIcon()}
+            label={getTypeLabel()}
+            size="small"
+            sx={{
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              color: 'white'
+            }}
+          />
+        </Tooltip>
+      </Box>
+      
+      {/* Product image */}
+      <Box sx={{ position: 'relative', overflow: 'hidden', pt: '70%' }}>
+        <CardMedia
+          component="img"
+          image={imageUrl}
+          alt={product.name}
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+        />
+        
+        {/* Overlay with product actions */}
+        <Box
+          className="card-overlay"
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            opacity: 0,
+            transition: 'opacity 0.3s ease'
+          }}
+        >
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleCardClick}
+            sx={{
+              borderRadius: 25,
+              px: 3
+            }}
+          >
+            View Details
+          </Button>
+        </Box>
+        
+        {/* Discount badge */}
+        {product.discountPrice && product.discountPrice < product.price && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 12,
+              left: 12,
+              bgcolor: 'primary.main',
+              color: 'white',
+              fontWeight: 'bold',
+              px: 1,
+              py: 0.5,
+              borderRadius: 1
+            }}
+          >
+            Save {Math.round((1 - product.discountPrice / product.price) * 100)}%
+          </Box>
+        )}
+      </Box>
+      
+      {/* Product content */}
+      <CardContent sx={{ flexGrow: 1, pb: 0 }}>
+        {/* Product name */}
+        <Typography 
+          variant="h6" 
+          component="h2" 
+          sx={{ 
+            mb: 1,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            color: 'white'
+          }}
+        >
+          {product.name}
+        </Typography>
+        
+        {/* Author info */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+          <Avatar
+            src={product.author.avatar}
+            alt={product.author.username}
+            sx={{ width: 24, height: 24, mr: 1 }}
+          />
+          <Typography variant="body2" color="text.secondary">
+            {product.author.username}
+          </Typography>
+        </Box>
+        
+        {/* Product description */}
+        <Typography 
+          variant="body2" 
+          color="text.secondary" 
+          sx={{ 
+            mb: 2,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+        >
+          {product.description}
+        </Typography>
+      </CardContent>
+      
+      {/* Product price and actions */}
+      <CardActions 
+        className="card-actions"
+        sx={{ 
+          justifyContent: 'space-between',
+          alignItems: 'center', 
+          px: 2,
+          py: 2
+        }}
+      >
+        {/* Price */}
+        <Box>
+          {product.discountPrice ? (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography 
+                variant="h6" 
+                color="primary.light" 
+                sx={{ fontWeight: 'bold' }}
+              >
+                {formatCurrency(product.discountPrice)}
+              </Typography>
+              <Typography 
+                variant="body2" 
+                color="text.secondary" 
+                sx={{ 
+                  ml: 1, 
+                  textDecoration: 'line-through'
+                }}
+              >
+                {formatCurrency(product.price)}
+              </Typography>
+            </Box>
+          ) : (
+            <Typography 
+              variant="h6" 
+              color="primary.light" 
+              sx={{ fontWeight: 'bold' }}
+            >
+              {formatCurrency(product.price)}
+            </Typography>
+          )}
+        </Box>
+        
+        {/* Add to cart button */}
+        {isInCart ? (
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<ShoppingCartCheckoutIcon />}
+            onClick={handleViewCart}
+            size="small"
+          >
+            View Cart
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<ShoppingCartIcon />}
+            onClick={handleAddToCart}
+            size="small"
+          >
+            Add to Cart
+          </Button>
+        )}
+      </CardActions>
+    </Card>
+  );
+};
+
+export default ProductCard;

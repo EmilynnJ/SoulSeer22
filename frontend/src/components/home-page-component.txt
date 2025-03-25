@@ -1,0 +1,245 @@
+// frontend/src/pages/Home.jsx
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
+import '../styles/Home.css';
+
+const Home = () => {
+  const { user } = useAuth();
+  const [onlineReaders, setOnlineReaders] = useState([]);
+  const [liveStreams, setLiveStreams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    const fetchHomeData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch online readers
+        const readersResponse = await api.get('/api/readers?status=online&limit=3');
+        setOnlineReaders(readersResponse.data.data);
+        
+        // Fetch live streams
+        const streamsResponse = await api.get('/api/streams/live?limit=3');
+        setLiveStreams(streamsResponse.data.data);
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching home data:', err);
+        setError('Failed to load content. Please try again.');
+        setLoading(false);
+      }
+    };
+    
+    fetchHomeData();
+  }, []);
+  
+  return (
+    <div className="home-container">
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-content">
+          <h1 className="gradient-text">SoulSeer</h1>
+          <h2>A Community of Gifted Psychics</h2>
+          <p>Connect with spiritual advisors for personalized readings through chat, video, or voice calls.</p>
+          
+          <div className="hero-buttons">
+            <Link to="/readers" className="btn btn-primary">Find Your Reader</Link>
+            <Link to="/live" className="btn btn-secondary">Join Live Events</Link>
+          </div>
+        </div>
+      </section>
+      
+      {/* Online Readers Section */}
+      <section className="section">
+        <div className="section-header">
+          <h2>Online Now</h2>
+          <Link to="/readers" className="view-all-link">View All</Link>
+        </div>
+        
+        {loading ? (
+          <div className="loading-container">
+            <div className="loader"></div>
+            <p>Loading readers...</p>
+          </div>
+        ) : error ? (
+          <div className="error-container">
+            <p>{error}</p>
+            <button onClick={() => window.location.reload()} className="btn btn-primary">Retry</button>
+          </div>
+        ) : (
+          <div className="readers-grid">
+            {onlineReaders.length > 0 ? (
+              onlineReaders.map(reader => (
+                <div key={reader._id} className="reader-card">
+                  <img 
+                    src={reader.avatar || '/assets/default-avatar.jpg'} 
+                    alt={reader.username} 
+                    className="reader-avatar"
+                  />
+                  <div className="reader-info">
+                    <h3>{reader.username}</h3>
+                    <div className="reader-specialties">
+                      {reader.specialties.slice(0, 2).join(', ')}
+                    </div>
+                    <div className="reader-rating">
+                      <span className="star">★</span> {reader.averageRating.toFixed(1)}/5
+                    </div>
+                    <div className="reader-rate">${reader.rates.chat}/min</div>
+                  </div>
+                  <Link to={`/readers/${reader._id}`} className="btn btn-primary">Start Reading</Link>
+                </div>
+              ))
+            ) : (
+              <div className="no-content-message">
+                <p>No readers are online right now. Check back soon!</p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+      
+      {/* Live Streams Section */}
+      <section className="section">
+        <div className="section-header">
+          <h2>Live Now</h2>
+          <Link to="/live" className="view-all-link">View All</Link>
+        </div>
+        
+        {loading ? (
+          <div className="loading-container">
+            <div className="loader"></div>
+            <p>Loading streams...</p>
+          </div>
+        ) : error ? (
+          <div className="error-container">
+            <p>{error}</p>
+          </div>
+        ) : (
+          <div className="streams-grid">
+            {liveStreams.length > 0 ? (
+              liveStreams.map(stream => (
+                <div key={stream._id} className="stream-card">
+                  <div className="stream-thumbnail">
+                    <div className="live-badge">LIVE</div>
+                    <div className="viewers-count">
+                      <i className="icon">👁️</i> {stream.viewerCount}
+                    </div>
+                    <img 
+                      src={stream.thumbnailUrl || '/assets/default-stream.jpg'} 
+                      alt={stream.title} 
+                    />
+                  </div>
+                  <div className="stream-info">
+                    <h3>{stream.title}</h3>
+                    <div className="stream-host">
+                      <img 
+                        src={stream.host.avatar || '/assets/default-avatar.jpg'} 
+                        alt={stream.host.username} 
+                        className="host-avatar"
+                      />
+                      <span>{stream.host.username}</span>
+                    </div>
+                    <div className="stream-category">{stream.category}</div>
+                  </div>
+                  <Link to={`/live/${stream._id}`} className="btn btn-secondary">Join Stream</Link>
+                </div>
+              ))
+            ) : (
+              <div className="no-content-message">
+                <p>No live streams available right now. Check back soon!</p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+      
+      {/* Featured Products Section */}
+      <section className="section">
+        <div className="section-header">
+          <h2>Featured Products</h2>
+          <Link to="/shop" className="view-all-link">View Shop</Link>
+        </div>
+        
+        <div className="products-grid">
+          <div className="product-card">
+            <img src="/assets/products/crystal-set.jpg" alt="Crystal Healing Set" />
+            <div className="product-info">
+              <h3>Crystal Healing Set</h3>
+              <div className="product-price">$49.99</div>
+            </div>
+            <Link to="/shop/products/1" className="btn btn-primary">View Details</Link>
+          </div>
+          
+          <div className="product-card">
+            <img src="/assets/products/tarot-deck.jpg" alt="Mystical Tarot Deck" />
+            <div className="product-info">
+              <h3>Mystical Tarot Deck</h3>
+              <div className="product-price">$29.99</div>
+            </div>
+            <Link to="/shop/products/2" className="btn btn-primary">View Details</Link>
+          </div>
+          
+          <div className="product-card">
+            <img src="/assets/products/meditation-guide.jpg" alt="Meditation Guide" />
+            <div className="product-info">
+              <h3>Meditation Guide</h3>
+              <div className="product-price">$19.99</div>
+            </div>
+            <Link to="/shop/products/3" className="btn btn-primary">View Details</Link>
+          </div>
+        </div>
+      </section>
+      
+      {/* How It Works Section */}
+      <section className="section how-it-works">
+        <div className="section-header">
+          <h2>How It Works</h2>
+        </div>
+        
+        <div className="steps-container">
+          <div className="step">
+            <div className="step-icon">1</div>
+            <h3>Choose a Reader</h3>
+            <p>Browse our community of talented psychics and find the one that matches your needs.</p>
+          </div>
+          
+          <div className="step">
+            <div className="step-icon">2</div>
+            <h3>Add Minutes</h3>
+            <p>Purchase minutes to spend on readings through our secure platform.</p>
+          </div>
+          
+          <div className="step">
+            <div className="step-icon">3</div>
+            <h3>Start Your Reading</h3>
+            <p>Connect with your chosen reader via chat, video, or voice call and receive guidance.</p>
+          </div>
+        </div>
+      </section>
+      
+      {/* Join Us Section */}
+      <section className="section join-us">
+        <div className="join-us-content">
+          <h2>Begin Your Spiritual Journey Today</h2>
+          <p>Sign up now to start your spiritual exploration with our community of gifted psychics.</p>
+          
+          <div className="join-us-buttons">
+            {user ? (
+              <Link to="/dashboard" className="btn btn-primary">Go to Dashboard</Link>
+            ) : (
+              <>
+                <Link to="/register" className="btn btn-primary">Create Account</Link>
+                <Link to="/login" className="btn btn-ghost">Sign In</Link>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default Home;
