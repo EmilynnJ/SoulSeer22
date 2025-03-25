@@ -1,0 +1,197 @@
+// client/src/components/Messages/MessageItem.jsx
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import {
+  Box,
+  Typography,
+  Avatar,
+  Paper,
+  IconButton,
+  Menu,
+  MenuItem,
+  Button,
+  Chip,
+  Tooltip
+} from '@mui/material';
+import {
+  MoreVert as MoreVertIcon,
+  Lock as LockIcon,
+  CheckCircle as CheckCircleIcon,
+  Payment as PaymentIcon
+} from '@mui/icons-material';
+import { format } from 'date-fns';
+import { updateMessageSettings } from '../../redux/actions/messageActions';
+
+const MessageItem = ({ message, currentUser, onPaymentRequired }) => {
+  const dispatch = useDispatch();
+  
+  const [anchorEl, setAnchorEl] = useState(null);
+  const menuOpen = Boolean(anchorEl);
+  
+  const isCurrentUser = message.sender._id === currentUser._id;
+  const needsPayment = message.requiresPayment && !message.isPaid && message.recipient._id === currentUser._id;
+  
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+  
+  const handleTogglePaidStatus = () => {
+    dispatch(updateMessageSettings(message._id, {
+      requiresPayment: !message.requiresPayment,
+      pricePerReply: message.pricePerReply || 1.00
+    }));
+    handleMenuClose();
+  };
+  
+  const handlePayMessage = () => {
+    onPaymentRequired(message);
+  };
+  
+  const formatTime = (date) => {
+    return format(new Date(date), 'h:mm a');
+  };
+  
+  const renderPaymentStatus = () => {
+    if (message.requiresPayment) {
+      if (message.isPaid) {
+        return (
+          <Tooltip title="Payment completed">
+            <Chip
+              icon={<CheckCircleIcon fontSize="small" />}
+              label="Paid"
+              size="small"
+              color="success"
+              sx={{ ml: 1 }}
+            />
+          </Tooltip>
+        );
+      } else {
+        return (
+          <Tooltip title="Payment required to reply">
+            <Chip
+              icon={<LockIcon fontSize="small" />}
+              label={`$${message.pricePerReply.toFixed(2)}`}
+              size="small"
+              color="warning"
+              sx={{ ml: 1 }}
+            />
+          </Tooltip>
+        );
+      }
+    }
+    return null;
+  };
+  
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: isCurrentUser ? 'flex-end' : 'flex-start',
+        mb: 2
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: isCurrentUser ? 'row-reverse' : 'row',
+          alignItems: 'flex-start',
+          maxWidth: '75%'
+        }}
+      >
+        {!isCurrentUser && (
+          <Avatar
+            src={message.sender.avatar}
+            alt={message.sender.username}
+            sx={{ mr: isCurrentUser ? 0 : 1, ml: isCurrentUser ? 1 : 0 }}
+          />
+        )}
+        
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          {!isCurrentUser && (
+            <Typography variant="subtitle2" sx={{ ml: 1 }}>
+              {message.sender.username}
+            </Typography>
+          )}
+          
+          <Paper
+            elevation={1}
+            sx={{
+              p: 1.5,
+              borderRadius: 2,
+              maxWidth: '100%',
+              backgroundColor: isCurrentUser ? 'primary.main' : 'grey.100',
+              color: isCurrentUser ? 'white' : 'inherit',
+              position: 'relative'
+            }}
+          >
+            <Typography variant="body1">{message.content}</Typography>
+            
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                mt: 0.5
+              }}
+            >
+              <Typography variant="caption" color={isCurrentUser ? 'rgba(255,255,255,0.7)' : 'text.secondary'}>
+                {formatTime(message.createdAt)}
+              </Typography>
+              
+              {renderPaymentStatus()}
+            </Box>
+          </Paper>
+          
+          {needsPayment && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<PaymentIcon />}
+              onClick={handlePayMessage}
+              sx={{ mt: 1, alignSelf: 'flex-start' }}
+            >
+              Pay ${message.pricePerReply.toFixed(2)} to Reply
+            </Button>
+          )}
+        </Box>
+        
+        {isCurrentUser && (
+          <Box>
+            <IconButton
+              size="small"
+              onClick={handleMenuClick}
+              aria-controls={menuOpen ? 'message-menu' : undefined}
+              aria-haspopup="true"
+              aria-expanded={menuOpen ? 'true' : undefined}
+            >
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+            
+            <Menu
+              id="message-menu"
+              anchorEl={anchorEl}
+              open={menuOpen}
+              onClose={handleMenuClose}
+              MenuListProps={{
+                'aria-labelledby': 'message-menu-button',
+              }}
+            >
+              <MenuItem onClick={handleTogglePaidStatus}>
+                {message.requiresPayment ? 'Make Reply Free' : 'Require Payment for Reply'}
+              </MenuItem>
+              <MenuItem onClick={handleMenuClose}>Edit Message</MenuItem>
+              <MenuItem onClick={handleMenuClose}>Delete Message</MenuItem>
+            </Menu>
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+export default MessageItem;

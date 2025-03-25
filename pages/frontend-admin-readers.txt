@@ -1,0 +1,1061 @@
+// pages/dashboard/AdminDashboard.jsx
+import React, { useState } from 'react';
+import { Routes, Route, NavLink } from 'react-router-dom';
+import DashboardStats from '../../components/admin/DashboardStats';
+import UserManagement from '../../components/admin/UserManagement';
+import ReaderManagement from '../../components/admin/ReaderManagement';
+import ReaderApplications from '../../components/admin/ReaderApplications';
+import SessionLogs from '../../components/admin/SessionLogs';
+import TransactionHistory from '../../components/admin/TransactionHistory';
+import ShopManagement from '../../components/admin/ShopManagement';
+import SettingsPanel from '../../components/admin/SettingsPanel';
+
+const AdminDashboard = () => {
+  const [collapsed, setCollapsed] = useState(false);
+  
+  return (
+    <div className="admin-dashboard flex">
+      {/* Sidebar */}
+      <aside className={`admin-sidebar bg-overlay ${collapsed ? 'collapsed' : ''}`}>
+        <div className="admin-sidebar-header">
+          <h3 className="gradient-text">Admin Panel</h3>
+          <button 
+            onClick={() => setCollapsed(!collapsed)} 
+            className="btn-ghost rounded-full p-2"
+            aria-label={collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {collapsed ? '→' : '←'}
+          </button>
+        </div>
+        
+        <nav className="admin-sidebar-nav">
+          <ul>
+            <li>
+              <NavLink to="/admin" end className="admin-nav-link">
+                <span className="icon">📊</span>
+                <span className="text">Dashboard</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/admin/users" className="admin-nav-link">
+                <span className="icon">👥</span>
+                <span className="text">Users</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/admin/readers" className="admin-nav-link">
+                <span className="icon">🔮</span>
+                <span className="text">Readers</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/admin/applications" className="admin-nav-link">
+                <span className="icon">📝</span>
+                <span className="text">Applications</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/admin/sessions" className="admin-nav-link">
+                <span className="icon">🕒</span>
+                <span className="text">Sessions</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/admin/transactions" className="admin-nav-link">
+                <span className="icon">💰</span>
+                <span className="text">Transactions</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/admin/shop" className="admin-nav-link">
+                <span className="icon">🛍️</span>
+                <span className="text">Shop</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/admin/settings" className="admin-nav-link">
+                <span className="icon">⚙️</span>
+                <span className="text">Settings</span>
+              </NavLink>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+      
+      {/* Main Content */}
+      <div className="admin-content flex-1 p-4">
+        <Routes>
+          <Route path="/" element={<DashboardStats />} />
+          <Route path="/users" element={<UserManagement />} />
+          <Route path="/readers" element={<ReaderManagement />} />
+          <Route path="/applications" element={<ReaderApplications />} />
+          <Route path="/sessions" element={<SessionLogs />} />
+          <Route path="/transactions" element={<TransactionHistory />} />
+          <Route path="/shop" element={<ShopManagement />} />
+          <Route path="/settings" element={<SettingsPanel />} />
+        </Routes>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
+
+// components/admin/DashboardStats.jsx
+import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
+import Loader from '../ui/Loader';
+import { formatCurrency } from '../../utils/formatters';
+
+const DashboardStats = () => {
+  const [stats, setStats] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.get('/api/admin/stats');
+        setStats(response.data.data);
+        setError(null);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load dashboard stats');
+        console.error('Error fetching stats:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchStats();
+    
+    // Refresh stats every 5 minutes
+    const interval = setInterval(fetchStats, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  if (isLoading) return <Loader />;
+  
+  if (error) {
+    return (
+      <div className="error-container text-center">
+        <p className="text-accent-color">Error: {error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="btn btn-primary mt-3"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+  
+  if (!stats) return null;
+  
+  return (
+    <div className="dashboard-stats">
+      <h1 className="text-2xl mb-6">Dashboard Overview</h1>
+      
+      <div className="stats-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="dashboard-card">
+          <div className="dashboard-stat">{stats.totalUsers}</div>
+          <div className="dashboard-label">Total Users</div>
+        </div>
+        
+        <div className="dashboard-card">
+          <div className="dashboard-stat">{stats.totalClients}</div>
+          <div className="dashboard-label">Total Clients</div>
+        </div>
+        
+        <div className="dashboard-card">
+          <div className="dashboard-stat">{stats.totalReaders}</div>
+          <div className="dashboard-label">Total Readers</div>
+        </div>
+        
+        <div className="dashboard-card">
+          <div className="dashboard-stat">{stats.totalSessions}</div>
+          <div className="dashboard-label">Total Sessions</div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card">
+          <h2 className="text-xl mb-4">Recent Sessions</h2>
+          {stats.recentSessions.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="text-left p-2">Reader</th>
+                    <th className="text-left p-2">Client</th>
+                    <th className="text-left p-2">Type</th>
+                    <th className="text-left p-2">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.recentSessions.map((session) => (
+                    <tr key={session._id} className="session-row">
+                      <td className="p-2">{session.reader.name}</td>
+                      <td className="p-2">{session.client.name}</td>
+                      <td className="p-2 capitalize">{session.type}</td>
+                      <td className="p-2">{formatCurrency(session.totalAmount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-light">No recent sessions</p>
+          )}
+        </div>
+        
+        <div className="card">
+          <h2 className="text-xl mb-4">Quick Actions</h2>
+          <div className="flex flex-col gap-3">
+            <button className="btn btn-primary">Create Reader Account</button>
+            <button className="btn btn-secondary">Review Applications</button>
+            <button className="btn btn-accent">View Sessions</button>
+            <button className="btn btn-ghost">Export Reports</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DashboardStats;
+
+// components/admin/ReaderManagement.jsx
+import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
+import Loader from '../ui/Loader';
+import Modal from '../ui/Modal';
+import { formatDate } from '../../utils/formatters';
+
+const ReaderManagement = () => {
+  const [readers, setReaders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentReader, setCurrentReader] = useState(null);
+  
+  // Form states
+  const [newReaderData, setNewReaderData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    specialties: [],
+    bio: '',
+    experience: 0,
+    rates: {
+      chat: 0,
+      video: 0,
+      phone: 0
+    }
+  });
+  
+  useEffect(() => {
+    fetchReaders();
+  }, []);
+  
+  const fetchReaders = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('/api/admin/users?role=reader');
+      setReaders(response.data.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load readers');
+      console.error('Error fetching readers:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleCreateReader = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/api/admin/readers', newReaderData);
+      setShowCreateModal(false);
+      fetchReaders();
+      // Reset form
+      setNewReaderData({
+        name: '',
+        email: '',
+        password: '',
+        specialties: [],
+        bio: '',
+        experience: 0,
+        rates: {
+          chat: 0,
+          video: 0,
+          phone: 0
+        }
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create reader');
+      console.error('Error creating reader:', err);
+    }
+  };
+  
+  const handleToggleStatus = async (readerId, isApproved) => {
+    try {
+      await api.put(`/api/admin/readers/${readerId}/status`, { isApproved });
+      fetchReaders();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update reader status');
+      console.error('Error updating reader status:', err);
+    }
+  };
+  
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewReaderData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleRateChange = (e) => {
+    const { name, value } = e.target;
+    setNewReaderData((prev) => ({
+      ...prev,
+      rates: {
+        ...prev.rates,
+        [name]: parseFloat(value)
+      }
+    }));
+  };
+  
+  const handleSpecialtiesChange = (e) => {
+    const value = Array.from(e.target.selectedOptions, option => option.value);
+    setNewReaderData((prev) => ({
+      ...prev,
+      specialties: value
+    }));
+  };
+  
+  if (isLoading) return <Loader />;
+  
+  return (
+    <div className="reader-management">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl">Reader Management</h1>
+        <button 
+          className="btn btn-primary"
+          onClick={() => setShowCreateModal(true)}
+        >
+          Create Reader Account
+        </button>
+      </div>
+      
+      {error && (
+        <div className="error-message mb-4 p-3 bg-accent text-white rounded-md">
+          {error}
+        </div>
+      )}
+      
+      <div className="card mb-6">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className="text-left p-2">Name</th>
+                <th className="text-left p-2">Email</th>
+                <th className="text-left p-2">Specialties</th>
+                <th className="text-left p-2">Experience</th>
+                <th className="text-left p-2">Rates</th>
+                <th className="text-left p-2">Status</th>
+                <th className="text-left p-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {readers.length > 0 ? (
+                readers.map((reader) => (
+                  <tr key={reader._id} className="reader-row">
+                    <td className="p-2">{reader.name}</td>
+                    <td className="p-2">{reader.email}</td>
+                    <td className="p-2">{reader.specialties.join(', ')}</td>
+                    <td className="p-2">{reader.experience} years</td>
+                    <td className="p-2">
+                      Chat: ${reader.rates.chat}/min<br />
+                      Video: ${reader.rates.video}/min<br />
+                      Phone: ${reader.rates.phone}/min
+                    </td>
+                    <td className="p-2">
+                      <span className={`status-badge ${reader.isApproved ? 'active' : 'inactive'}`}>
+                        {reader.isApproved ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="p-2">
+                      <div className="flex space-x-2">
+                        <button 
+                          className="btn btn-sm btn-ghost"
+                          onClick={() => {
+                            setCurrentReader(reader);
+                            setShowEditModal(true);
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          className={`btn btn-sm ${reader.isApproved ? 'btn-accent' : 'btn-secondary'}`}
+                          onClick={() => handleToggleStatus(reader._id, !reader.isApproved)}
+                        >
+                          {reader.isApproved ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="text-center p-4">
+                    No readers found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* Create Reader Modal */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Reader Account"
+      >
+        <form onSubmit={handleCreateReader}>
+          <div className="form-group">
+            <label htmlFor="name" className="form-label">Full Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={newReaderData.name}
+              onChange={handleInputChange}
+              className="form-control"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="email" className="form-label">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={newReaderData.email}
+              onChange={handleInputChange}
+              className="form-control"
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="password" className="form-label">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              value={newReaderData.password}
+              onChange={handleInputChange}
+              className="form-control"
+              required
+              minLength="6"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="specialties" className="form-label">Specialties</label>
+            <select
+              id="specialties"
+              name="specialties"
+              multiple
+              value={newReaderData.specialties}
+              onChange={handleSpecialtiesChange}
+              className="form-control"
+            >
+              <option value="Tarot">Tarot</option>
+              <option value="Astrology">Astrology</option>
+              <option value="Psychic">Psychic</option>
+              <option value="Medium">Medium</option>
+              <option value="Energy Healing">Energy Healing</option>
+              <option value="Past Life">Past Life</option>
+              <option value="Dream Interpretation">Dream Interpretation</option>
+              <option value="Other">Other</option>
+            </select>
+            <small className="text-light">Hold Ctrl/Cmd to select multiple</small>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="bio" className="form-label">Bio</label>
+            <textarea
+              id="bio"
+              name="bio"
+              value={newReaderData.bio}
+              onChange={handleInputChange}
+              className="form-control"
+              rows="4"
+            ></textarea>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="experience" className="form-label">Experience (years)</label>
+            <input
+              type="number"
+              id="experience"
+              name="experience"
+              value={newReaderData.experience}
+              onChange={handleInputChange}
+              className="form-control"
+              min="0"
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Rates ($/minute)</label>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="chat" className="form-label">Chat</label>
+                <input
+                  type="number"
+                  id="chat"
+                  name="chat"
+                  value={newReaderData.rates.chat}
+                  onChange={handleRateChange}
+                  className="form-control"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div>
+                <label htmlFor="video" className="form-label">Video</label>
+                <input
+                  type="number"
+                  id="video"
+                  name="video"
+                  value={newReaderData.rates.video}
+                  onChange={handleRateChange}
+                  className="form-control"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div>
+                <label htmlFor="phone" className="form-label">Phone</label>
+                <input
+                  type="number"
+                  id="phone"
+                  name="phone"
+                  value={newReaderData.rates.phone}
+                  onChange={handleRateChange}
+                  className="form-control"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setShowCreateModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+            >
+              Create Reader
+            </button>
+          </div>
+        </form>
+      </Modal>
+      
+      {/* Edit Reader Modal would go here */}
+    </div>
+  );
+};
+
+export default ReaderManagement;
+
+// components/admin/ReaderApplications.jsx
+import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
+import Loader from '../ui/Loader';
+import { formatDate } from '../../utils/formatters';
+
+const ReaderApplications = () => {
+  const [applications, setApplications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  
+  useEffect(() => {
+    fetchApplications();
+  }, []);
+  
+  const fetchApplications = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('/api/admin/applications');
+      setApplications(response.data.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load applications');
+      console.error('Error fetching applications:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleApprove = async (id) => {
+    try {
+      await api.put(`/api/admin/applications/${id}/approve`);
+      fetchApplications();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to approve application');
+      console.error('Error approving application:', err);
+    }
+  };
+  
+  const handleReject = async (id) => {
+    try {
+      await api.put(`/api/admin/applications/${id}/reject`);
+      fetchApplications();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to reject application');
+      console.error('Error rejecting application:', err);
+    }
+  };
+  
+  if (isLoading) return <Loader />;
+  
+  return (
+    <div className="reader-applications">
+      <h1 className="text-2xl mb-6">Reader Applications</h1>
+      
+      {error && (
+        <div className="error-message mb-4 p-3 bg-accent text-white rounded-md">
+          {error}
+        </div>
+      )}
+      
+      {applications.length === 0 ? (
+        <div className="card p-6 text-center">
+          <p className="text-lg">No pending applications</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <div className="card">
+              <h2 className="text-xl mb-4">Applications ({applications.length})</h2>
+              <div className="application-list">
+                {applications.map((app) => (
+                  <div 
+                    key={app._id} 
+                    className={`application-item mb-3 p-3 rounded-lg cursor-pointer ${selectedApplication && selectedApplication._id === app._id ? 'bg-primary bg-opacity-20' : 'bg-surface'}`}
+                    onClick={() => setSelectedApplication(app)}
+                  >
+                    <div className="font-bold">{app.name}</div>
+                    <div className="text-sm text-light">{app.email}</div>
+                    <div className="text-xs text-light">
+                      Applied: {formatDate(app.applicationDate)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="lg:col-span-2">
+            {selectedApplication ? (
+              <div className="card">
+                <h2 className="text-xl mb-4">Application Details</h2>
+                
+                <div className="application-details">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <h3 className="text-lg font-bold">{selectedApplication.name}</h3>
+                      <p className="text-light">{selectedApplication.email}</p>
+                      <p className="text-light">Applied: {formatDate(selectedApplication.applicationDate)}</p>
+                    </div>
+                    
+                    <div className="text-right">
+                      <div className="mb-2">
+                        <span className="text-light">Experience: </span>
+                        <span>{selectedApplication.experience || 'Not specified'} years</span>
+                      </div>
+                      <div>
+                        <span className="text-light">Specialties: </span>
+                        <span>{selectedApplication.specialties?.join(', ') || 'None specified'}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-6">
+                    <h4 className="text-md font-bold mb-2">Bio</h4>
+                    <div className="bio-content p-3 bg-surface rounded-lg">
+                      {selectedApplication.bio || 'No bio provided'}
+                    </div>
+                  </div>
+                  
+                  <div className="action-buttons flex justify-end space-x-3">
+                    <button 
+                      className="btn btn-accent"
+                      onClick={() => handleReject(selectedApplication._id)}
+                    >
+                      Reject
+                    </button>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => handleApprove(selectedApplication._id)}
+                    >
+                      Approve
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="card p-6 text-center">
+                <p>Select an application to view details</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ReaderApplications;
+
+// components/ui/Modal.jsx
+import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+
+const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
+  const modalRef = useRef(null);
+  
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    
+    const handleClickOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+      document.addEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = 'hidden';
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, onClose]);
+  
+  if (!isOpen) return null;
+  
+  const sizeClasses = {
+    sm: 'max-w-md',
+    md: 'max-w-2xl',
+    lg: 'max-w-4xl',
+    xl: 'max-w-6xl',
+    full: 'max-w-full'
+  };
+  
+  return createPortal(
+    <div className="modal-overlay fixed inset-0 z-modal bg-black bg-opacity-80 flex items-center justify-center p-4">
+      <div 
+        ref={modalRef}
+        className={`modal-content bg-surface rounded-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-auto`}
+      >
+        <div className="modal-header p-4 border-b border-gray-700 flex justify-between items-center">
+          <h3 className="text-xl font-semibold">{title}</h3>
+          <button 
+            onClick={onClose}
+            className="close-btn text-2xl font-light hover:text-accent transition-colors"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        <div className="modal-body p-6">
+          {children}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+export default Modal;
+
+// components/admin/UserManagement.jsx
+import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
+import Loader from '../ui/Loader';
+import Modal from '../ui/Modal';
+import { formatDate } from '../../utils/formatters';
+
+const UserManagement = () => {
+  const [users, setUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('all');
+  
+  const [editData, setEditData] = useState({
+    name: '',
+    email: '',
+    role: '',
+  });
+  
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+  
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('/api/admin/users');
+      setUsers(response.data.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load users');
+      console.error('Error fetching users:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    try {
+      // Update user data
+      await api.put(`/api/admin/users/${currentUser._id}`, {
+        name: editData.name,
+        email: editData.email,
+      });
+      
+      // Update role if changed
+      if (editData.role !== currentUser.role) {
+        await api.put(`/api/admin/users/${currentUser._id}/role`, {
+          role: editData.role
+        });
+      }
+      
+      setShowEditModal(false);
+      fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update user');
+      console.error('Error updating user:', err);
+    }
+  };
+  
+  const handleEditClick = (user) => {
+    setCurrentUser(user);
+    setEditData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
+    setShowEditModal(true);
+  };
+  
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  // Filter users based on search term and role
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = 
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = filterRole === 'all' || user.role === filterRole;
+    
+    return matchesSearch && matchesRole;
+  });
+  
+  if (isLoading) return <Loader />;
+  
+  return (
+    <div className="user-management">
+      <h1 className="text-2xl mb-6">User Management</h1>
+      
+      {error && (
+        <div className="error-message mb-4 p-3 bg-accent text-white rounded-md">
+          {error}
+        </div>
+      )}
+      
+      <div className="filter-section card mb-6 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="search" className="form-label">Search</label>
+            <input
+              type="text"
+              id="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name or email"
+              className="form-control"
+            />
+          </div>
+          <div>
+            <label htmlFor="role" className="form-label">Filter by Role</label>
+            <select
+              id="role"
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="form-control"
+            >
+              <option value="all">All Roles</option>
+              <option value="client">Clients</option>
+              <option value="reader">Readers</option>
+              <option value="admin">Admins</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div className="card">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className="text-left p-2">Name</th>
+                <th className="text-left p-2">Email</th>
+                <th className="text-left p-2">Role</th>
+                <th className="text-left p-2">Joined Date</th>
+                <th className="text-left p-2">Last Login</th>
+                <th className="text-left p-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <tr key={user._id} className="user-row">
+                    <td className="p-2">{user.name}</td>
+                    <td className="p-2">{user.email}</td>
+                    <td className="p-2 capitalize">{user.role}</td>
+                    <td className="p-2">{formatDate(user.createdAt)}</td>
+                    <td className="p-2">
+                      {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
+                    </td>
+                    <td className="p-2">
+                      <div className="flex space-x-2">
+                        <button 
+                          className="btn btn-sm btn-ghost"
+                          onClick={() => handleEditClick(user)}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="6" className="text-center p-4">
+                    No users found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* Edit User Modal */}
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Edit User"
+      >
+        {currentUser && (
+          <form onSubmit={handleUpdateUser}>
+            <div className="form-group">
+              <label htmlFor="name" className="form-label">Full Name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={editData.name}
+                onChange={handleInputChange}
+                className="form-control"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={editData.email}
+                onChange={handleInputChange}
+                className="form-control"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="role" className="form-label">Role</label>
+              <select
+                id="role"
+                name="role"
+                value={editData.role}
+                onChange={handleInputChange}
+                className="form-control"
+              >
+                <option value="client">Client</option>
+                <option value="reader">Reader</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setShowEditModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </div>
+  );
+};
+
+export default UserManagement;
