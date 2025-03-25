@@ -1,0 +1,107 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Page Components
+import Welcome from './pages/Welcome';
+import Home from './pages/Home';
+import About from './pages/About';
+import Readers from './pages/Readers';
+import ReaderDetail from './pages/ReaderDetail';
+import Live from './pages/Live';
+import Shop from './pages/Shop';
+import ProductDetail from './pages/ProductDetail';
+import Community from './pages/Community';
+import Messages from './pages/Messages';
+import Dashboard from './pages/Dashboard';
+import HelpCenter from './pages/HelpCenter';
+import Policies from './pages/Policies';
+import Register from './pages/Register';
+import Login from './pages/Login';
+import ReaderApplication from './pages/ReaderApplication';
+import NotFound from './pages/NotFound';
+
+// Layout Components
+import Navigation from './components/Navigation';
+import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
+
+// Authentication Context
+import { AuthProvider } from './context/AuthContext';
+
+const App = () => {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate loading assets or checking authentication
+    const loadApp = async () => {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setLoading(false);
+    };
+
+    loadApp();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>Loading SoulSeer...</p>
+      </div>
+    );
+  }
+
+  return (
+    <AuthProvider>
+      <Router>
+        <ScrollToTop />
+        <Navigation />
+        <main className="main-content">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Welcome />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/readers" element={<Readers />} />
+            <Route path="/readers/:id" element={<ReaderDetail />} />
+            <Route path="/live" element={<Live />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/shop/:id" element={<ProductDetail />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/policies" element={<Policies />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
+            
+            {/* Protected Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/dashboard/*" element={<Dashboard />} />
+              <Route path="/apply" element={<ReaderApplication />} />
+            </Route>
+            
+            {/* Not Found */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+        <Footer />
+        <ToastContainer 
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
+      </Router>
+    </AuthProvider>
+  );
+};
+
+export default App;
