@@ -1,0 +1,32 @@
+// backend/.env.example
+NODE_ENV=development
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/soulseer
+JWT_SECRET=replace_with_your_secret_key
+JWT_EXPIRE=30d
+
+# AWS Configuration
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=us-east-1
+S3_BUCKET=soulseer-uploads
+
+# Stripe Configuration
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+STRIPE_CONNECT_CLIENT_ID=your_stripe_connect_client_id
+
+# WebRTC Configuration
+RTC_APP_ID=your_rtc_app_id
+RTC_APP_CERTIFICATE=your_rtc_app_certificate
+
+# Admin Seed
+ADMIN_EMAIL=admin@soulseer.com
+ADMIN_PASSWORD=adminpassword123
+ADMIN_NAME=Admin User
+
+// frontend/.env.example
+VITE_API_URL=http://localhost:5000/api
+VITE_SOCKET_URL=http://localhost:5000
+VITE_STRIPE_PUBLIC_KEY=your_stripe_public_key
+VITE_ASSET_URL=http://localhost:5000/uploads
